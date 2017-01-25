@@ -26,7 +26,7 @@ while len(queued_urls) > 0:
         req = requests.get(u, timeout=5)
         res = req.status_code
 #       if res != requests.codes.ok: continue
-        root = etree.HTML(req.text, base_url=u)
+        root = etree.HTML(req.content, base_url=u)
     except requests.ConnectionError as e:
         res = e
         continue
