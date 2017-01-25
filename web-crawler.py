@@ -44,6 +44,10 @@ while len(queued_urls) > 0:
         pfx = "{}[{}]".format(i, len(visited_urls))
         print(pfx, u, res)
 
+    # ignore non-HTML documents
+    # e.g.: http://famfamfam.com/feed.xml
+    if root is None: continue
+
 #   print([a.get('href') for a in root.xpath('//a')])
     for a in root.xpath('//a'):
         if (len(visited_urls) + len(queued_urls) >= count):
