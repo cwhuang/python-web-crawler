@@ -1,7 +1,7 @@
 import sys
 import requests
 from lxml import etree
-from collections import deque
+from collections import OrderedDict
 try: from urlparse import urljoin # Python2
 except ImportError: from urllib.parse import urljoin # Python3
 
@@ -17,34 +17,45 @@ else:
 
 
 visited_urls = set()
-queued_urls = [ url ]
+queued_urls = OrderedDict({ url: '' })
 
-while len(visited_urls) < count and len(queued_urls) > 0:
-    urls = list()
-    for u in queued_urls:
-#       print(u)
-        try:
-            req = requests.get(u, timeout=5)
-            res = req.status_code
-        except Exception as e:
-            res = e
-            continue
-        finally:
-            visited_urls.add(u)
-            print("[{}]".format(len(visited_urls)), u, res)
-#       if r.status_code != requests.codes.ok: continue
+while len(queued_urls) > 0:
+    (u, i) = queued_urls.popitem(last=False)
+#   print(u)
+    try:
+        req = requests.get(u, timeout=5)
+        res = req.status_code
+#       if res != requests.codes.ok: continue
         root = etree.HTML(req.text, base_url=u)
-#       print([a.get('href') for a in root.xpath('//a')])
-        for a in root.xpath('//a'):
-            h = a.get('href')
-#           print(h)
-            # why h is None?
-            if h is None: continue
-            (uj, sep, ui) = urljoin(a.base, h).partition('#')
-            if uj not in visited_urls and uj not in queued_urls and uj not in urls:
-                if uj.startswith('http'): urls.append(uj)
-#           print(a.base, h, uj)
-        if (len(visited_urls) >= count):
-            break
-    queued_urls = urls
+    except requests.ConnectionError as e:
+        res = e
+        continue
+    except requests.Timeout as e:
+        res = e
+        continue
+    except requests.TooManyRedirects as e:
+        res = e
+        continue
+    except ValueError as e:
+        res = e
+        continue
+    finally:
+        visited_urls.add(u)
+        pfx = "{}[{}]".format(i, len(visited_urls))
+        print(pfx, u, res)
+
+#   print([a.get('href') for a in root.xpath('//a')])
+    for a in root.xpath('//a'):
+        href = a.get('href')
+#       print(href)
+        # why href is None?
+        if href is None: continue
+        # ignore named anchor
+        (uj, sep, ui) = urljoin(a.base, href).partition('#')
+        if uj not in visited_urls and uj not in queued_urls:
+            # could we handle other url types?
+            if uj.startswith('http'): queued_urls[uj] = pfx
+#       print(a.base, href, uj)
+    if (len(visited_urls) >= count):
+        break
 #   print(queued_urls)
