@@ -46,6 +46,8 @@ while len(queued_urls) > 0:
 
 #   print([a.get('href') for a in root.xpath('//a')])
     for a in root.xpath('//a'):
+        if (len(visited_urls) + len(queued_urls) >= count):
+            break
         href = a.get('href')
 #       print(href)
         # why href is None?
